@@ -5,6 +5,9 @@
 #include "Adafruit_LEDBackpack.h"
 #include "Adafruit_GFX.h"
 
+#include <WaveHC.h>
+#include <WaveUtil.h>
+
 #define startup 5000
 #define tauntTime 5000
 #define resetTime 10000
@@ -26,8 +29,23 @@ int timeOnUni;
 int numAttempts;
 int timeProne;
 
+SdReader card;    // This object holds the information for the card
+FatVolume vol;    // This holds the information for the partition on the card
+FatReader root;   // This holds the information for the volumes root directory
+FatReader file;   // This object represent the WAV file 
+WaveHC wave;      // This is the only wave (audio) object, since we will only play one at a time
+
 void setup() {
   Serial.begin(9600);
+
+  if (!card.init()) Serial.println("card.init");
+
+  // enable optimized read - some cards may timeout
+  card.partialBlockRead(true);
+
+  if (!vol.init(card)) Serial.println("vol.init");
+
+  if (!root.openRoot(vol)) Serial.println("openRoot");
 
   /* Initialise the sensor */
   if (!accel.begin())
