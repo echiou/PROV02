@@ -123,6 +123,7 @@ void loop() {
       startUni = 0;
       lastMovement = time;
       pickedUp = false;
+      delay(1000);
     }
   } else if (!pickedUp && !unicycleUp) {
     if (inUse && timeProne > resetTime) { // Prone for 10s
