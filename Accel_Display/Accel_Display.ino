@@ -32,8 +32,8 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ
 //#define WLAN_PASS       "#Yolo$WAGG420"
 
 
-#define WLAN_SSID       "EpsilonHouse"            // cannot be longer than 32 characters!
-#define WLAN_PASS       "3psilonHau5"
+#define WLAN_SSID       "prashan"            // cannot be longer than 32 characters!
+#define WLAN_PASS       "prashan7"
 // Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
@@ -85,47 +85,8 @@ void setup() {
   Serial.begin(9600);
   Serial.println("hello");
   wtv020sd16p.reset();
-  /* Initialise the sensor */
-  if (!accel.begin())
-  {
-    /* There was a problem detecting the ADXL345 ... check your connections */
-    //Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
-    while (1);
-  }
 
-  matrix.begin(0x70);
-  
-  // Reset digits
-  matrix.writeDigitNum(0, 0);
-  matrix.writeDigitNum(1, 0);
-  matrix.writeDigitNum(3, 0);
-  matrix.writeDigitNum(4, 0);
-  matrix.writeDisplay();
-  
-  // Wait 10s to startup (to place unicycle down, etc.)
-  delay(startup);
-  Serial.println("Let's begin");
-  pickedUp = false;
-  inUse = false;
-  lastTaunt = millis();
-  lastMovement = 0;
-  timeProne = 0;
-  
-  timeOnUni = 0;
-  numAttempts = 0;
-}
-
-boolean accelerometer_up(sensors_event_t accel_event) {
-  if (accel_event.acceleration.x <= 0){
-    return false;
-  }
-  return true;
-}  
-
-void makePostRequest(String data) 
-{
-
- /* Initialise the module */
+  /* Initialise the module */
   Serial.println(F("\nInitializing..."));
   if (!cc3000.begin())
   {
@@ -157,6 +118,46 @@ void makePostRequest(String data)
   }
   cc3000.printIPdotsRev(ip);
   
+  /* Initialise the sensor */
+  if (!accel.begin())
+  {
+    /* There was a problem detecting the ADXL345 ... check your connections */
+    //Serial.println("Ooops, no LSM303 detected ... Check your wiring!");
+    while (1);
+  }
+
+  matrix.begin(0x70);
+  
+  // Reset digits
+  matrix.writeDigitNum(0, 0);
+  matrix.writeDigitNum(1, 0);
+  matrix.writeDigitNum(3, 0);
+  matrix.writeDigitNum(4, 0);
+  matrix.writeDisplay();
+  
+  // Wait 10s to startup (to place unicycle down, etc.)
+  //delay(startup);
+  Serial.println("Let's begin");
+  pickedUp = false;
+  inUse = false;
+  lastTaunt = millis();
+  lastMovement = 0;
+  timeProne = 0;
+  
+  timeOnUni = 0;
+  numAttempts = 0;
+}
+
+boolean accelerometer_up(sensors_event_t accel_event) {
+  if (accel_event.acceleration.y <= 0){
+    return false;
+  }
+  return true;
+}  
+
+void makePostRequest(String data) 
+{
+  
   Adafruit_CC3000_Client client = cc3000.connectTCP(ip, 80);
 
   if (client.connected()) {
@@ -177,14 +178,23 @@ void makePostRequest(String data)
     Serial.println(F("Connection failed"));    
     return;
   }
-
+  /* Read data until either the connection is closed, or the idle timeout is reached. */ 
+  unsigned long lastRead = millis();
+  while (client.connected() && (millis() - lastRead < IDLE_TIMEOUT_MS)) {
+    while (client.available()) {
+      char c = client.read();
+      Serial.print(c);
+      lastRead = millis();
+    }
+  }
+  
   client.close();
   Serial.println(F("-------------------------------------"));
   
   /* You need to make sure to clean up after yourself or the CC3000 can freak out */
   /* the next time your try to connect ... */
-  Serial.println(F("\n\nDisconnecting"));
-  cc3000.disconnect();
+  //Serial.println(F("\n\nDisconnecting"));
+  //cc3000.disconnect();
   
 
 }
@@ -223,6 +233,8 @@ void loop() {
         timeOnUni = 99;
       }
       Serial.println("You got to " + (String)timeOnUni + " seconds.");
+      
+      playSound(true);
       
       // Flash time (Maybe TODO: Modularize this?)         
       matrix.writeDigitRaw(0, off);
@@ -298,9 +310,11 @@ void loop() {
     
       matrix.writeDisplay();     
       // Post on Twitter
-      makePostRequest(String(numAttempts));
+      if(numAttempts % 3 == 0){
+        makePostRequest(String(numAttempts));
+      }
       // Play negative comment
-      playSound(true);
+      
 
       Serial.println("Haha you fell");
       startUni = 0;
