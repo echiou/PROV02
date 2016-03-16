@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM303_U.h>
+#include <math.h>
 
 #include "Adafruit_LEDBackpack.h"
 #include "Adafruit_GFX.h"
@@ -21,6 +22,8 @@ unsigned long lastMovement;
 unsigned long startUni;
 boolean pickedUp;
 boolean inUse;
+
+const uint8_t off = 0;
 
 int timeOnUni;
 int numAttempts;
@@ -74,7 +77,7 @@ void loop() {
   boolean unicycleUp = accelerometer_up(accel_event);
   
   time = millis();
-  timeProne = time - lastMovement;
+  timeProne = round(time - lastMovement);
   
   if (!pickedUp && unicycleUp) { // Accelerometer detected change in orientation
     if(!inUse) {
@@ -88,6 +91,7 @@ void loop() {
     startUni = time;
     Serial.println("Unicycle picked up!");
   } else if (pickedUp) { // Unicycle is recording data
+    boolean drawDots = false;
     if (unicycleUp) { // Wait for them to fall
       delay (100);
       lastMovement = time;
@@ -95,7 +99,66 @@ void loop() {
     } else { // They fell!
       // Set time & record on matrix.
       timeOnUni = (time - startUni) / 1000; // In seconds
+      if (timeOnUni > 100) {
+        timeOnUni = 99;
+      }
       Serial.println("You got to " + (String)timeOnUni + " seconds.");
+      
+      // Flash time (Maybe TODO: Modularize this?)         
+      matrix.writeDigitRaw(0, off);
+      matrix.writeDigitRaw(1, off);
+      matrix.drawColon(drawDots);
+      matrix.writeDigitNum(3, (numAttempts / 10) % 10, drawDots);
+      matrix.writeDigitNum(4, numAttempts % 10, drawDots);
+    
+      matrix.writeDisplay();
+      delay(200);
+      
+      matrix.writeDigitNum(0, (timeOnUni / 10) % 10, drawDots);
+      matrix.writeDigitNum(1, timeOnUni % 10, drawDots);
+      matrix.drawColon(drawDots);
+      matrix.writeDigitNum(3, (numAttempts / 10) % 10, drawDots);
+      matrix.writeDigitNum(4, numAttempts % 10, drawDots);
+    
+      matrix.writeDisplay(); 
+      delay(750);
+      
+      matrix.writeDigitRaw(0, off);
+      matrix.writeDigitRaw(1, off);
+      matrix.drawColon(drawDots);
+      matrix.writeDigitNum(3, (numAttempts / 10) % 10, drawDots);
+      matrix.writeDigitNum(4, numAttempts % 10, drawDots);
+    
+      matrix.writeDisplay();
+      delay(200);
+      
+      matrix.writeDigitNum(0, (timeOnUni / 10) % 10, drawDots);
+      matrix.writeDigitNum(1, timeOnUni % 10, drawDots);
+      matrix.drawColon(drawDots);
+      matrix.writeDigitNum(3, (numAttempts / 10) % 10, drawDots);
+      matrix.writeDigitNum(4, numAttempts % 10, drawDots);
+    
+      matrix.writeDisplay(); 
+      delay(750);
+      
+      matrix.writeDigitRaw(0, off);
+      matrix.writeDigitRaw(1, off);
+      matrix.drawColon(drawDots);
+      matrix.writeDigitNum(3, (numAttempts / 10) % 10, drawDots);
+      matrix.writeDigitNum(4, numAttempts % 10, drawDots);
+    
+      matrix.writeDisplay();
+      delay(200);
+      
+      matrix.writeDigitNum(0, (timeOnUni / 10) % 10, drawDots);
+      matrix.writeDigitNum(1, timeOnUni % 10, drawDots);
+      matrix.drawColon(drawDots);
+      matrix.writeDigitNum(3, (numAttempts / 10) % 10, drawDots);
+      matrix.writeDigitNum(4, numAttempts % 10, drawDots);
+    
+      matrix.writeDisplay(); 
+      delay(750);
+      
       if (timeOnUni > recordTime) {
         recordTime = timeOnUni;
       }
@@ -107,13 +170,11 @@ void loop() {
         numAttempts = 99;
       }
       
-      boolean drawDots = false;
       matrix.writeDigitNum(0, (recordTime / 10) % 10, drawDots);
       matrix.writeDigitNum(1, recordTime % 10, drawDots);
       matrix.drawColon(drawDots);
       matrix.writeDigitNum(3, (numAttempts / 10) % 10, drawDots);
       matrix.writeDigitNum(4, numAttempts % 10, drawDots);
-    
     
       matrix.writeDisplay();     
       // Post on Twitter
@@ -123,7 +184,6 @@ void loop() {
       startUni = 0;
       lastMovement = time;
       pickedUp = false;
-      delay(1000);
     }
   } else if (!pickedUp && !unicycleUp) {
     if (inUse && timeProne > resetTime) { // Prone for 10s
